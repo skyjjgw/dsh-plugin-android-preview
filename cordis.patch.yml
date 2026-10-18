@@ -1,0 +1,3 @@
+- insert:
+    - id: android-preview
+      name: dsh-plugin-android-preview

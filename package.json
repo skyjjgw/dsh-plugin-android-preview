@@ -1,0 +1,31 @@
+{
+  "name": "dsh-plugin-android-preview",
+  "version": "0.1.0",
+  "description": "Real Android app preview and Flutter hot reload in a native DeepSeek Harness sidebar tab.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": ["lib", "scripts", "cordis.patch.yml", "README.md", "LICENSE", "NOTICE.md"],
+  "engines": { "node": ">=22" },
+  "os": ["win32"],
+  "license": "AGPL-3.0-only",
+  "keywords": ["dsh-plugin", "deepseek-harness", "android", "flutter", "scrcpy", "hot-reload"],
+  "repository": { "type": "git", "url": "https://github.com/skyjjgw/dsh-plugin-android-preview.git" },
+  "peerDependencies": { "@deepseek-ai/schemastery": "^3.18.5" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "inject": ["@deepseek-ai/dsh-client-ui-renderer", "@deepseek-ai/dsh-client-ui-sidebar-right"]
+    }
+  },
+  "scripts": {
+    "test": "node --test lib/preview/protocol.test.mjs test/*.test.mjs",
+    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/preview/server.mjs && node --check lib/preview/client.js"
+  }
+}
