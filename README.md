@@ -6,7 +6,7 @@ Flutter 界面热重载。当前适配星伴 / Operit2 工程，使用已构建�
 
 ## 环境
 
-- Windows；DeepSeek Harness **0.2.1-rc.2** 或具有同一公开右侧页签/connection API 的版本。
+- Windows；Node.js **22.19.0+**；DeepSeek Harness **0.2.1-rc.2+**，仍需保留同一公开右侧页签/connection API。
 - 已配置的星伴 / Operit2 工程，包含 `scripts/rolelife/environment.ps1`、
   `scripts/rolelife/start-debug-preview.ps1` 和当前源码生成的 Android 调试 APK。
 - 已安装 Android SDK、模拟器、固定版本 Flutter SDK、官方 **scrcpy 3.3.3**。
@@ -20,8 +20,17 @@ Flutter 界面热重载。当前适配星伴 / Operit2 工程，使用已构建�
 GitHub 源码地址：<https://github.com/skyjjgw/dsh-plugin-android-preview>。
 包已包含可直接加载的客户端和宿主产物，安装后无需构建前端。
 
-通过 Harness 支持的本地/GitHub 插件安装方式安装此包，并添加其 bundle
-`dsh-plugin-android-preview`。在对应插件配置中填写本机路径，例如：
+通过 Harness 的插件安装入口填写 `github:skyjjgw/dsh-plugin-android-preview#v0.1.2`，
+或对 CLI 的 Web profile 执行：
+
+```powershell
+dsh plugin --profile web add github:skyjjgw/dsh-plugin-android-preview#v0.1.2
+```
+
+CLI 的 `web` profile 与桌面应用管理的 profile 分开，桌面用户应使用当前应用内的插件安装入口。
+本包已声明 `dsh.bundle.patch`，正常安装会自动选入 bundle，无需再插入第二份插件行。
+未发布到 npm，请使用 GitHub 源码或 GitHub Release 安装包。
+在对应插件配置中填写本机路径，例如：
 
 ```yaml
 - insert:
@@ -82,4 +91,5 @@ npm pack --dry-run
 ```
 
 `lib/client.js` 直接注册到宿主模块加载器；React 由宿主提供，不打包第二份 React。
+Host 的 `@deepseek-ai/schemastery` 由 DSH 运行时提供，声明为可选 peer，避免包管理器另装一份 SDK。
 `lib/preview/` 保留完整可读源码。许可与来源见 [NOTICE.md](NOTICE.md) 和 [LICENSE](LICENSE)。

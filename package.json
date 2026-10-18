@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-android-preview",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Real Android app preview and Flutter hot reload in a native DeepSeek Harness sidebar tab.",
   "type": "module",
   "main": "lib/index.js",
@@ -11,12 +11,15 @@
     "./package.json": "./package.json"
   },
   "files": ["lib", "scripts", "cordis.patch.yml", "README.md", "LICENSE", "NOTICE.md"],
-  "engines": { "node": ">=22" },
+  "engines": { "node": ">=22.19.0", "dsh": ">=0.2.1-rc.2" },
   "os": ["win32"],
   "license": "AGPL-3.0-only",
   "keywords": ["dsh-plugin", "deepseek-harness", "android", "flutter", "scrcpy", "hot-reload"],
   "repository": { "type": "git", "url": "https://github.com/skyjjgw/dsh-plugin-android-preview.git" },
+  "homepage": "https://github.com/skyjjgw/dsh-plugin-android-preview#readme",
+  "bugs": { "url": "https://github.com/skyjjgw/dsh-plugin-android-preview/issues" },
   "peerDependencies": { "@deepseek-ai/schemastery": "^3.18.5" },
+  "peerDependenciesMeta": { "@deepseek-ai/schemastery": { "optional": true } },
   "dsh": {
     "bundle": { "patch": "./cordis.patch.yml" },
     "client": {
