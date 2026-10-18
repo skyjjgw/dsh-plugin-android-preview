@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-android-preview",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Real Android app preview and Flutter hot reload in a native DeepSeek Harness sidebar tab.",
   "type": "module",
   "main": "lib/index.js",

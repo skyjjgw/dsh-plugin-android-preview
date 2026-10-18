@@ -53,8 +53,12 @@ GitHub 源码地址：<https://github.com/skyjjgw/dsh-plugin-android-preview>。
 同一模拟器同时只运行一个 Flutter 调试会话。切换到此插件前，停止 VS Code/Codex 中
 同一设备的 Flutter 调试连接。原生/Rust/插件宿主/权限变化仍需重建调试 APK。
 
-当前 ARM64 调试包通过 x86 模拟器翻译运行，使用软件渲染兼容启动；性能和玻璃材质效果
-以真机为准。模拟器 WebView 曾出现原生崩溃，插件的“重启 App”可恢复调试。
+当前 ARM64 调试包通过 x86 模拟器翻译运行，默认使用 Skia GPU 渲染。
+配套项目启动器使用宿主 GPU 和 4 GB 内存；本机 RTX 4060 已验证。
+CPU 翻译和视频编码仍有开销，不代表整个预览链路都在 GPU 上运行。
+驱动不兼容时，在启动 Harness 前设置 `OPERIT_PREVIEW_RENDERER=software`，
+重新启动模拟器后可回退；项目环境脚本会传递该选项。性能和玻璃材质效果以真机为准。
+模拟器 WebView 曾出现原生崩溃，插件的“重启 App”可恢复调试。
 本版按竖屏验证，旋转后的控制尚未验证。
 
 ## 连接和权限
