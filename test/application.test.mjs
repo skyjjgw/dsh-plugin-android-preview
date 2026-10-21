@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { checkApplication, flutterCommand, launchApplication, prepareEnvironment } from '../lib/application.mjs';
@@ -57,7 +57,7 @@ test('Android-only preflight and optional environment hook work without any Flut
     const hook = path.join(directory, 'prepare.mjs');
     await writeFile(hook, 'process.stdout.write(JSON.stringify({FLUTTER_ROOT:process.cwd(),UNRELATED_SECRET:"omit",PATH:"test"}))');
     const prepared = await prepareEnvironment({ ...settings, prepareExecutable: process.execPath, prepareArgs: [hook] });
-    assert.equal(prepared.FLUTTER_ROOT, directory);
+    assert.equal(await realpath(prepared.FLUTTER_ROOT), await realpath(directory));
     assert.deepEqual(Object.keys(prepared).sort(), ['FLUTTER_ROOT', 'PATH']);
     await assert.rejects(checkApplication({ ...settings, hotReload: true }, {}), /flutterRoot/);
     await mkdir(path.join(directory, 'missing.apk'));
