@@ -1,112 +1,80 @@
 # Android App Preview for DeepSeek Harness
 
-[简体中文](README.md) · [Project compatibility contract](docs/compatibility.md)
+[简体中文](README.md) · [Configuration and migration](docs/compatibility.md)
 
-Operate a real Android emulator in a native DeepSeek Harness right sidebar tab,
-and hot-reload Dart changes while editing a configured Starcompanion / Operit2
-Flutter project. The plugin uses an existing debug APK and public DSH APIs.
+Operate a real Android emulator in a native DSH right sidebar: touch, scroll, type and navigate. Flutter debug APKs additionally support hot reload when Dart source changes. Configure your own APK, application ID, launch activity and source directories; standalone apps and monorepos work without Starcompanion / Operit2 or mandatory PowerShell scripts.
 
-## Requirements
+## Requirements and installation
 
-- Windows, Node.js 22.19.0+, and DSH 0.2.1-rc.2+ retaining the same public
-  sidebar, renderer and connection APIs. The minimum host version is declared
-  in `engines.dsh`; this is not a claim that every later preview was tested.
-- An existing Starcompanion / Operit2-derived project with the layout, helper
-  scripts and debug Android package specified in the [compatibility contract](docs/compatibility.md).
-- An installed Android SDK/emulator, the project's Flutter SDK and an external
-  official scrcpy 3.3.3 server. The plugin does not download these tools.
-- One explicitly configured emulator serial, such as `emulator-5556`.
+- Node.js 22.19.0+, DSH 0.2.1-rc.2+ retaining the public sidebar, renderer and connection APIs.
+- Windows, macOS or Linux with Android SDK, a **running emulator** and an external official **scrcpy 3.3.3 server**.
+- An existing compatible APK. Flutter hot reload needs a debug APK matching the current source and Flutter SDK.
+- No SDK downloads, emulator startup or APK builds are performed by default. Physical phones are not supported; rotated-screen control is not verified.
 
-The current implementation fixes the Android package/activity and project layout.
-Changing only `projectRoot` does not make an arbitrary Flutter app compatible.
-Physical phones, macOS/Linux hosts, audio and rotated-screen control are outside
-the currently verified scope.
-
-## Install
-
-Use the desktop application's plugin installer with this pinned Git source:
+Desktop users can enter this source in their application's plugin installer:
 
 ```text
-github:skyjjgw/dsh-plugin-android-preview#v0.1.3
+github:skyjjgw/dsh-plugin-android-preview#v0.2.0
 ```
 
 For a separate CLI Web profile:
 
-```powershell
-dsh plugin --profile web add github:skyjjgw/dsh-plugin-android-preview#v0.1.3
+```sh
+dsh plugin --profile web add github:skyjjgw/dsh-plugin-android-preview#v0.2.0
 ```
 
-Desktop and CLI Web profiles are separate. Use the installer belonging to the
-host you intend to run. The package contains prebuilt readable JavaScript and a
-`dsh.bundle.patch`; installation selects the bundle without a separate build or
-install lifecycle script. This package is not published to npm.
+The package includes readable JavaScript and a `dsh.bundle.patch`, with no build or install lifecycle script. It is not published on npm. Desktop and CLI profiles are separate; configure the existing `android-preview` row rather than inserting a duplicate or replacing your profile.
 
-Configure the existing `android-preview` plugin row with local absolute paths:
+## Flutter configuration
+
+The following is the row's **config object**, not a full profile. Replace every path, ID and emulator serial with your actual values:
 
 ```yaml
-- insert:
-    - id: android-preview
-      name: dsh-plugin-android-preview
-      config:
-        projectRoot: E:/projects/starcompanion-operit2
-        adbPath: E:/Android/Sdk/platform-tools/adb.exe
-        scrcpyServer: E:/tools/scrcpy-win64-v3.3.3/scrcpy-server
-        port: 18772
-        serial: emulator-5556
-        frameAncestors:
-          - dsh-app://app
+projectRoot: /home/me/projects/my-counter
+appDirectory: .
+apkPath: build/app/outputs/flutter-apk/app-debug.apk
+applicationId: com.example.my_counter
+activity: .MainActivity
+flutterRoot: /opt/flutter
+adbPath: /home/me/Android/Sdk/platform-tools/adb
+scrcpyServer: /home/me/tools/scrcpy-server
+serial: emulator-5556
+hotReload: true
+watchDirectories:
+  - lib
+port: 18772
+frameAncestors:
+  - dsh-app://app
 ```
 
-This is a standalone overlay example. When the bundle already created the row,
-edit that row instead of inserting a duplicate or replacing the entire profile.
+On Windows use native absolute paths such as `E:/projects/my-counter`, `E:/SDK/flutter` and `E:/Android/Sdk/platform-tools/adb.exe`. On macOS use paths such as `/Users/me/projects/my-counter`. The Dart executable is selected for the host OS. An empty `flutterRoot` uses `FLUTTER_ROOT`.
 
-## Use
+For monorepos, set `appDirectory: apps/mobile` and `watchDirectories: [lib, ../../packages/widgets/lib]`. Source directories must stay inside `projectRoot`. `apkPath` can also be absolute.
 
-1. Open a chat and select the phone-preview button or the phone-preview tab from
-   the right sidebar's new-tab screen.
-2. Opening the tab runs the configured project's preparation helpers, installs
-   its existing debug APK and attaches the Flutter debugger to that emulator.
-3. Use the mouse, wheel and keyboard to operate the phone. Explicit paste sends
-   the pasted text to the Android clipboard; clipboard autosynchronization is off.
-4. Save Dart files under `apps/flutter/app/lib` or
-   `apps/flutter/packages/operit_ui/lib` to request a Flutter hot reload.
-5. If the debug app stops, use the restart-app control. Disabling the plugin
-   closes its listener, sockets, file watchers and owned Flutter process while
-   retaining the emulator for other development tools.
+## Other Android apps
 
-Keep only one Flutter debug attachment per emulator. Native/Rust changes,
-Android permissions and plugin-host changes still require rebuilding the debug
-APK. ARM64-to-x86 translation and video encoding can limit responsiveness even
-when the emulator uses the host GPU. A project helper can propagate
-`OPERIT_PREVIEW_RENDERER=software` before restarting the emulator as a fallback.
-An emulator WebView crash may require restarting the app.
+Set `hotReload: false` for an existing Kotlin, Java, React Native or other Android APK, and configure its actual `apkPath`, `applicationId` and `activity`. A Gradle debug APK might be at `app/build/outputs/apk/debug/app-debug.apk`. This mode installs, launches and mirrors the APK without a Flutter SDK or Dart watcher; it does not implement JavaScript/native hot reload. Rebuild changed APKs yourself, then use restart-app.
 
-## Execution and access boundaries
+## Use and lifecycle
 
-Enabling a configured plugin starts an idle HTTP service on `127.0.0.1`; opening
-the phone tab starts the project helpers, ADB/scrcpy and Flutter. Treat the
-configured project's PowerShell helpers as trusted local executable code.
+Start the configured emulator first, then open a chat and the phone-preview sidebar tab. Opening the tab installs and launches your APK; Flutter mode attaches its debugger afterward. Use mouse/touch, wheel, keyboard or explicit paste to operate the phone. Saving watched `.dart` files requests hot reload. The toolbar supports reload, video refresh and app restart; reload is disabled in plain Android mode.
 
-Local management requests use a random same-origin session token. WebSockets
-validate Host and Origin. The DSH `/api/android-preview/info` discovery route
-uses the host's connection-layer owner-Peer validation. Embedded frames permit
-`dsh-app://app` and explicitly configured `http://127.0.0.1:PORT` origins; no
-wildcards or external origins are supported. These checks are not an operating
-system sandbox.
+Disabling the plugin closes its listener, sockets, watchers and owned Flutter process, retaining the emulator. Keep only one Flutter attachment per emulator. Native code, permissions and dependency changes require a new debug APK. `renderer: auto` preserves the app's renderer; `gpu` or `software` explicitly selects a Flutter fallback.
 
-The plugin registers no model tools and does not read the system clipboard,
-record video, use a microphone, or expose an arbitrary shell/file API. Debug
-paths and logs can contain local information; do not post user profiles,
-credentials, chat history or debug endpoints to public issues.
+## Execution boundaries
+
+No project scripts execute by default. Optional `prepareExecutable` (absolute path) and `prepareArgs` launch a trusted owner-configured program directly, without a shell. Its stdout must be a JSON environment object; see the [hook contract and migration guide](docs/compatibility.md).
+
+Enabling a configured plugin starts an idle HTTP service on `127.0.0.1`. Opening the tab runs ADB/scrcpy, optional preparation and optional Flutter. WebSockets require local Host, exact Origin and a random same-origin session token. The discovery route uses the host connection layer's owner-Peer check. Frames allow `dsh-app://app` and explicitly configured loopback HTTP origins, never wildcards or external origins.
+
+There are no model tools, microphone/audio, video recording, system clipboard reading or arbitrary shell/file HTTP APIs. Explicit typing/paste writes the Android clipboard; automatic clipboard synchronization is disabled. Child processes inherit the host environment. These checks are not an OS sandbox.
 
 ## Development
 
-```powershell
+```sh
 npm run check
 npm test
 npm pack --dry-run
 ```
 
-The host supplies React and the optional peer
-`@deepseek-ai/schemastery`; a second SDK/runtime is not bundled. See [NOTICE.md](NOTICE.md)
-for third-party origins and [LICENSE](LICENSE) for AGPL-3.0-only licensing.
+Tests cover Windows/macOS/Linux path and launch selection, generic APK/Flutter startup, optional preparation, cancellation, loopback controls, protocol handling and disposal. CI runs on all three platforms. See the [verification scope](docs/compatibility.md) for actual emulator testing. React and the optional SDK peer come from the host. Licensing and origins: [NOTICE.md](NOTICE.md), [LICENSE](LICENSE).

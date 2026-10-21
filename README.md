@@ -1,97 +1,84 @@
-# DeepSeek Harness 手机预览插件
+# DeepSeek Harness Android 预览插件
 
-[English](README.en.md) · [工程与兼容条件](docs/compatibility.md)
+[English](README.en.md) · [配置与迁移说明](docs/compatibility.md)
 
-在 DeepSeek Harness 聊天右侧打开**真实 Android App**，支持点击、滑动、返回与
-Flutter 界面热重载。当前适配星伴 / Operit2 工程，使用已构建的调试 APK，不在每次保存时
-重新打包。插件通过 Harness 的原生右侧页签 API 接入，不改宿主安装包。
+在 DSH 原生右侧页签中操作真实 Android 模拟器：点击、滑动、输入和返回；Flutter 调试 APK 还可在保存 Dart 源码时热重载。包名、启动 Activity、APK 和源码目录均可配置，支持独立工程和 monorepo，不要求星伴 / Operit2 或配套 PowerShell 脚本。
 
-## 环境
+## 环境与安装
 
-- Windows；Node.js **22.19.0+**；DeepSeek Harness **0.2.1-rc.2+**，仍需保留同一公开右侧页签/connection API。
-- 已配置的星伴 / Operit2 工程，包含 `scripts/rolelife/environment.ps1`、
-  `scripts/rolelife/start-debug-preview.ps1` 和当前源码生成的 Android 调试 APK。
-- 已安装 Android SDK、模拟器、固定版本 Flutter SDK、官方 **scrcpy 3.3.3**。
-- 当前版本只连接配置中指定的模拟器，默认 `emulator-5556`；不枚举或控制其他手机。
+- Node.js **22.19.0+**，DSH **0.2.1-rc.2+**（使用相同公开 sidebar / renderer / connection API）。
+- Windows、macOS 或 Linux 上已安装的 Android SDK、**正在运行的模拟器**、官方 **scrcpy 3.3.3 server**。
+- 已构建、能在该模拟器运行的 APK；Flutter 热重载另需匹配源码和 Flutter SDK 的 **debug APK**。
+- 插件不下载 SDK、不启动模拟器、不构建 APK；不控制实体手机。屏幕控制按竖屏实现，旋转控制尚未验证。
 
-不会自动下载 SDK，不分发宿主、APK、scrcpy 或用户配置。所有开发环境路径由本机项目脚本
-决定；建议将项目、SDK、缓存和模拟器数据放在空间充足的非系统盘。
+在桌面应用插件安装入口填写：
 
-## 安装与配置
-
-GitHub 源码地址：<https://github.com/skyjjgw/dsh-plugin-android-preview>。
-包已包含可直接加载的客户端和宿主产物，安装后无需构建前端。
-
-通过 Harness 的插件安装入口填写 `github:skyjjgw/dsh-plugin-android-preview#v0.1.3`，
-或对 CLI 的 Web profile 执行：
-
-```powershell
-dsh plugin --profile web add github:skyjjgw/dsh-plugin-android-preview#v0.1.3
+```text
+github:skyjjgw/dsh-plugin-android-preview#v0.2.0
 ```
 
-CLI 的 `web` profile 与桌面应用管理的 profile 分开，桌面用户应使用当前应用内的插件安装入口。
-本包已声明 `dsh.bundle.patch`，正常安装会自动选入 bundle，无需再插入第二份插件行。
-未发布到 npm，请使用 GitHub 源码或 GitHub Release 安装包。
-在对应插件配置中填写本机路径，例如：
+CLI Web profile 可使用：
+
+```sh
+dsh plugin --profile web add github:skyjjgw/dsh-plugin-android-preview#v0.2.0
+```
+
+桌面与 CLI profile 分开。包自带可读 JavaScript 和 `dsh.bundle.patch`，无需安装脚本或前端构建；未发布 npm。安装后编辑已有 `android-preview` 行的 config，保留其他插件配置，不要重复插入同名行。
+
+## Flutter 示例
+
+下面是普通 Flutter 工程的 **config 内容**。将路径、包名、Activity 和模拟器编号换成实际值：
 
 ```yaml
-- insert:
-    - id: android-preview
-      name: dsh-plugin-android-preview
-      config:
-        projectRoot: E:/projects/starcompanion-operit2
-        adbPath: E:/Android/Sdk/platform-tools/adb.exe
-        scrcpyServer: E:/tools/scrcpy-win64-v3.3.3/scrcpy-server
-        port: 18772
-        serial: emulator-5556
-        frameAncestors:
-          - dsh-app://app
+projectRoot: E:/projects/my-counter
+appDirectory: .
+apkPath: build/app/outputs/flutter-apk/app-debug.apk
+applicationId: com.example.my_counter
+activity: .MainActivity
+flutterRoot: E:/SDK/flutter
+adbPath: E:/Android/Sdk/platform-tools/adb.exe
+scrcpyServer: E:/tools/scrcpy-server
+serial: emulator-5556
+hotReload: true
+watchDirectories:
+  - lib
+port: 18772
+frameAncestors:
+  - dsh-app://app
 ```
 
-该行是用户 overlay 的独立安装示例；已由 bundle 创建同名行时，编辑已有行的配置，
-不要再次插入同一 id。不要覆盖整个用户 profile、已有 bundle 或其他插件配置。
+macOS / Linux 使用本机绝对路径（如 `/Users/me/projects/my-counter` 或 `/home/me/projects/my-counter`），ADB 为 `platform-tools/adb`；Dart 启动器自动选择系统版本。`flutterRoot` 留空时使用 `FLUTTER_ROOT`。
+
+monorepo 可设置 `appDirectory: apps/mobile`，`watchDirectories: [lib, ../../packages/widgets/lib]`。源码目录必须在 `projectRoot` 内，APK 也可指定绝对路径。
+
+## 普通 Android APK
+
+Kotlin / Java / React Native 等已有 Android APK 可配置 `hotReload: false`、实际 `apkPath`、`applicationId` 和 `activity`。例如 Gradle debug APK 路径 `app/build/outputs/apk/debug/app-debug.apk`。此模式仅安装、启动与投屏，无需 Flutter SDK，也不会监听 Dart、启动 Flutter 或承诺 JS / 原生热重载。APK、原生依赖或权限变化需自行重新构建，然后点击重启 App。
 
 ## 使用
 
-1. 打开一个聊天会话，点击聊天顶部“手机预览”，或从右侧新建页签的引导页选“手机预览”。
-2. 页签打开后自动连接手机，复用模拟器、安装已有调试 APK，并连接 Flutter 调试器。
-3. 连接完成后，画面占满面板，只保留一排底部工具按钮。保存 `apps/flutter/app/lib` 或
-   `apps/flutter/packages/operit_ui/lib` 下的 Dart 文件，即可自动更新画面。
-4. 用鼠标点击、拖动、滚轮操作手机；点中手机输入框后直接用键盘输入或粘贴。
-5. 调试 App 中断时点击底部左侧的运行图标重启 App。禁用插件会关闭其本机监听、连接、文件监听器与
-   自己创建的 Flutter 进程；模拟器保留供其他开发工具复用。
+1. 启动配置的模拟器，确认 `adb devices` 中对应编号在线。
+2. 打开聊天，点击“手机预览”或右侧新建页签中的手机预览入口。
+3. 插件安装已有 APK，启动配置的 Activity，显示可操作的真实画面；Flutter 模式随后连接调试器。
+4. 鼠标点击 / 拖动 / 滚轮操作手机，键盘输入或主动粘贴文字。保存监听目录内的 `.dart` 文件会请求 Flutter 热重载。
+5. 底部按钮可热重载、刷新视频、重启 App；普通 Android 模式禁用热重载。禁用插件会释放监听端口、连接、源码监听器及其创建的 Flutter 进程，保留模拟器。
 
-同一模拟器同时只运行一个 Flutter 调试会话。切换到此插件前，停止 VS Code/Codex 中
-同一设备的 Flutter 调试连接。原生/Rust/插件宿主/权限变化仍需重建调试 APK。
+同一模拟器只保留一个 Flutter 调试连接。已有 APK 必须对应当前源码；原生代码、插件依赖与权限变化需重建。默认 `renderer: auto` 保留 App 渲染方式，必要时显式设置 `gpu` 或 `software`。性能取决于模拟器、CPU 架构和驱动。
 
-当前 ARM64 调试包通过 x86 模拟器翻译运行，默认使用 Skia GPU 渲染。
-配套项目启动器使用宿主 GPU 和 4 GB 内存；本机 RTX 4060 已验证。
-CPU 翻译和视频编码仍有开销，不代表整个预览链路都在 GPU 上运行。
-驱动不兼容时，在启动 Harness 前设置 `OPERIT_PREVIEW_RENDERER=software`，
-重新启动模拟器后可回退；项目环境脚本会传递该选项。性能和玻璃材质效果以真机为准。
-模拟器 WebView 曾出现原生崩溃，插件的“重启 App”可恢复调试。
-本版按竖屏验证，旋转后的控制尚未验证。
+## 可选准备命令与权限
 
-## 连接和权限
+默认不运行任何工程脚本。需要构建前置步骤或配置环境时，可显式配置 `prepareExecutable` 的绝对路径和 `prepareArgs` 字符串数组。直接启动程序、不开 shell；程序 stdout 必须仅输出 JSON 环境变量对象。详细协议和旧版本迁移见[配置说明](docs/compatibility.md)。这会执行用户选择的本机程序，请仅配置可信脚本。
 
-安装插件只启动空闲的 `127.0.0.1` 网页服务；打开手机页签后才运行项目的预览准备脚本、
-ADB、scrcpy 和 Flutter。网页管理操作需要同源随机会话令牌，WebSocket 同时校验 Host
-和 Origin。Harness 内发现地址的 `/api/android-preview/info` 路由由其 connection 层验证
-owner Peer。仅允许明确的 `dsh-app://app` 父页面嵌入；Web Harness 用户可额外配置准确的
-`http://127.0.0.1:端口`，不支持通配符或外网来源。
+启用插件先启动空闲 `127.0.0.1` 服务；打开页签后才运行准备命令、ADB / scrcpy 和可选 Flutter。WebSocket 校验本机 Host、准确 Origin 和随机同源令牌；发现路由由宿主 connection 层验证 owner Peer。嵌入仅允许 `dsh-app://app` 或显式配置的本机 HTTP origin，不允许通配符和外网来源。
 
-没有模型工具、自动 prompt、麦克风/音频、系统剪贴板读取、任意 shell 或任意文件接口。
-键盘输入/用户主动粘贴会把对应文字写到安卓剪贴板并粘贴，自动剪贴板同步关闭。不会保存屏幕录像。
-本机调试地址、路径和日志不应粘贴到公开 issue；不要上传 profile、账号密钥或聊天记录。
+无模型工具、麦克风、音频、录像、系统剪贴板读取或任意 shell / 文件 HTTP API。主动输入 / 粘贴会写安卓剪贴板，自动剪贴板同步关闭。子进程继承宿主环境，这些检查不是系统沙箱。
 
-## 开发与验证
+## 验证与开发
 
-```powershell
+```sh
 npm run check
 npm test
 npm pack --dry-run
 ```
 
-`lib/client.js` 直接注册到宿主模块加载器；React 由宿主提供，不打包第二份 React。
-Host 的 `@deepseek-ai/schemastery` 由 DSH 运行时提供，声明为可选 peer，避免包管理器另装一份 SDK。
-`lib/preview/` 保留完整可读源码。许可与来源见 [NOTICE.md](NOTICE.md) 和 [LICENSE](LICENSE)。
+测试覆盖三种系统的路径与启动参数、通用 APK / Flutter 启动、可选准备命令、取消、回环访问限制、协议和资源释放；CI 在 Windows / macOS / Linux 上运行。真实模拟器验证范围与发布记录见[配置说明](docs/compatibility.md)。React 和 SDK 由宿主提供，不打包第二份。许可与来源见 [NOTICE.md](NOTICE.md) 和 [LICENSE](LICENSE)。

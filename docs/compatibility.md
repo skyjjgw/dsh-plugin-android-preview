@@ -1,55 +1,53 @@
-# 工程与兼容条件 / Project compatibility contract
+# Configuration, compatibility and migration / 配置与迁移
 
-本文件说明当前实现的固定条件，便于安装者和目录维护者核验。它不是通用 Flutter 工程适配器。
-This documents the current implementation's fixed requirements for users and
-catalog reviewers. It does not add a generic Flutter project adapter.
+Version 0.2.0 replaces the fixed Windows/Starcompanion adapter with configurable Android/Flutter startup. Installing does not discover or execute project scripts. / 0.2.0 不再固定 Windows、工程目录、包名或 PowerShell 启动器。
 
-## 固定工程结构 / Fixed project layout
+## Settings
 
-All paths below are relative to the configured `projectRoot`:
-
-| Path | Role |
+| Setting | Contract |
 | --- | --- |
-| `scripts/rolelife/environment.ps1` | Dot-sourced by the packaged preparation helper to configure the local toolchain. |
-| `scripts/rolelife/start-debug-preview.ps1` | Invoked with `-PrepareOnly`; must finish preparing the configured emulator/toolchain without starting a competing Flutter debug attachment. |
-| `apps/flutter/app` | Working directory for Flutter attach. |
-| `apps/flutter/app/build/app/outputs/flutter-apk/app-debug.apk` | Existing debug APK installed with `adb install -r` when starting preview. |
-| `apps/flutter/app/lib` | Watched recursively for Dart saves. |
-| `apps/flutter/packages/operit_ui/lib` | Second watched Dart source directory. |
+| `projectRoot` | Required native absolute project path. |
+| `appDirectory` | Default `.`; resolves within project root. |
+| `apkPath` | Default `build/app/outputs/flutter-apk/app-debug.apk`, relative to app directory or absolute. Must already exist. |
+| `applicationId` | Required real APK package identifier; no brand-specific default. |
+| `activity` | Default `.MainActivity`; may be fully qualified. |
+| `adbPath`, `scrcpyServer` | Required absolute paths; external official scrcpy **3.3.3** server. |
+| `serial` | Default `emulator-5556`; only explicit `emulator-NNNN[N]` targets. |
+| `flutterRoot` | Absolute SDK path, or empty to use `FLUTTER_ROOT`; required only for hot reload. |
+| `hotReload` | Default `true`; set `false` for non-Flutter APKs. |
+| `watchDirectories` | Default `[lib]`, relative to app directory; may reference monorepo siblings within project root. Max 32 directories. |
+| `renderer` | `auto` (default, no extra flags), `gpu` or `software` (explicit Skia launch flags). |
+| `prepareExecutable`, `prepareArgs` | Empty by default. Optional trusted program's absolute path and string argument array (max 64). |
+| `port` | Default `18772`, range 1024–65535, binds only `127.0.0.1`. |
+| `frameAncestors` | Default `[dsh-app://app]`; optionally exact `http://127.0.0.1:PORT`, max 8, no external origins/wildcards. |
 
-The project's environment script must set `FLUTTER_ROOT` to the installed Flutter
-SDK containing `bin/cache/dart-sdk/bin/dart.exe` and
-`bin/cache/flutter_tools.snapshot`. Other required Android/toolchain variables
-must already be configured. The plugin's preparation helper returns an explicit
-allowlist of development-toolchain environment variables as JSON; it does not
-return unrelated API keys. The child process also inherits the host environment,
-so this allowlist does not isolate processes from the host's existing privileges
-or environment.
+Paths resolve using the host OS. The plugin calls executables with argument arrays rather than shell commands. macOS/Linux use SDK `bin/cache/dart-sdk/bin/dart`; Windows uses `dart.exe`. SDK tools must already be runnable. The APK must support the selected emulator ABI/API; a matching Flutter debug APK and sources are needed for hot reload. Audio and physical devices are out of scope. Rotation handling is unverified.
 
-## 固定 Android 目标 / Fixed Android target
+## Optional preparation protocol / 可选准备命令
 
-| Setting | Current value |
-| --- | --- |
-| Application ID | `com.skymoni.starcompanion.operit.debug` |
-| Launch component | `com.skymoni.starcompanion.operit.debug/app.operit.MainActivity` |
-| Accepted device serials | Explicit `emulator-` serials only; default `emulator-5556`. |
-| scrcpy server protocol | Official scrcpy 3.3.3. |
-| Host platform | Windows; the helper uses `powershell.exe` and Flutter's Windows Dart executable. |
+Run only when the phone tab starts/restarts, with cwd=`projectRoot`, a 150-second timeout, 1 MiB output cap, cancellation and no shell. Stdout must contain only a JSON object of string environment values; send diagnostics to stderr. Accepted toolchain keys: PATH, TEMP, TMP, TMPDIR, APPDATA, LOCALAPPDATA, USERPROFILE, HOME, JAVA_HOME, ANDROID_HOME, ANDROID_SDK_ROOT, ANDROID_AVD_HOME, ANDROID_USER_HOME, GRADLE_USER_HOME, PUB_CACHE, FLUTTER_ROOT, CARGO_HOME, RUSTUP_HOME and the legacy OPERIT_PREVIEW_RENDERER. Unknown keys are omitted. `renderer` is selected by plugin config, not the legacy environment variable.
 
-These application identifiers and directory paths are currently fixed in
-`lib/preview/server.mjs`. They are not exposed as plugin settings. A project with
-a different application ID, activity, layout or startup contract requires an
-implementation change and a fresh runtime check before claiming support.
+The hook is trusted local code and can do anything the current user can. The child environment merges accepted hook values into the inherited host environment; the allowlist is not isolation of host secrets. Use an absolute executable (Node, Bash, pwsh, or Windows PowerShell) and separate arguments. No hook is necessary for a prebuilt APK and configured SDK paths.
 
-## 声明与验证 / Declared and verified scope
+## Upgrade from 0.1.x / 旧版升级
 
-The package declares Node.js `>=22.19.0` and DSH `>=0.2.1-rc.2`. Its client uses
-the public renderer/right-sidebar services and its host injects `connection`.
-The previously verified Windows workflow uses the configured Starcompanion /
-Operit2 debug APK, portrait control and Dart hot reload. Later DSH previews,
-arbitrary Android apps, physical devices, rotated control and other host
-platforms are not covered by that runtime evidence.
+0.1.x fixed the app layout and Android package. In 0.2.0 those values must be explicit. Existing Starcompanion/Operit2 users can retain their app with:
 
-Version 0.1.3 updates documentation and the package documentation allowlist.
-Runtime files under `lib/`, project preparation code under `scripts/`, and
-`cordis.patch.yml` are unchanged from v0.1.2.
+```yaml
+appDirectory: apps/flutter/app
+applicationId: com.skymoni.starcompanion.operit.debug
+activity: app.operit.MainActivity
+watchDirectories:
+  - lib
+  - ../packages/operit_ui/lib
+renderer: gpu
+```
+
+Keep your actual `projectRoot`, APK, ADB, scrcpy and Flutter SDK paths. For projects that still require the old preparation helpers, the packaged `scripts/prepare-environment.ps1` remains an **opt-in Windows adapter**. Configure `prepareExecutable` to the absolute `powershell.exe` path and `prepareArgs` to `[-NoProfile, -File, <absolute installed adapter path>, -ProjectRoot, <projectRoot>]`. The adapter expects `scripts/rolelife/environment.ps1` and `start-debug-preview.ps1` in that project. Do not add it for unrelated apps.
+
+## Verification scope
+
+- Protocol, command-vector, path, hook, cancellation and idle lifecycle tests are runnable without Android/Flutter installed.
+- CI matrix exercises Node 22.19.0 and 24 on Windows, macOS and Linux; check the actual workflow results rather than interpreting the matrix as a completed test report.
+- Real emulator verification and install receipts for this release are recorded in the release notes. macOS/Linux emulator sessions have not been tested locally; portable implementation and CI do not establish driver/codec compatibility on every machine.
+- DSH minimum host is 0.2.1-rc.2. Later host versions must retain the public APIs; not every preview version is verified.
