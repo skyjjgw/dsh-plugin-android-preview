@@ -1,5 +1,7 @@
 # DeepSeek Harness 手机预览插件
 
+[English](README.en.md) · [工程与兼容条件](docs/compatibility.md)
+
 在 DeepSeek Harness 聊天右侧打开**真实 Android App**，支持点击、滑动、返回与
 Flutter 界面热重载。当前适配星伴 / Operit2 工程，使用已构建的调试 APK，不在每次保存时
 重新打包。插件通过 Harness 的原生右侧页签 API 接入，不改宿主安装包。
@@ -20,11 +22,11 @@ Flutter 界面热重载。当前适配星伴 / Operit2 工程，使用已构建�
 GitHub 源码地址：<https://github.com/skyjjgw/dsh-plugin-android-preview>。
 包已包含可直接加载的客户端和宿主产物，安装后无需构建前端。
 
-通过 Harness 的插件安装入口填写 `github:skyjjgw/dsh-plugin-android-preview#v0.1.2`，
+通过 Harness 的插件安装入口填写 `github:skyjjgw/dsh-plugin-android-preview#v0.1.3`，
 或对 CLI 的 Web profile 执行：
 
 ```powershell
-dsh plugin --profile web add github:skyjjgw/dsh-plugin-android-preview#v0.1.2
+dsh plugin --profile web add github:skyjjgw/dsh-plugin-android-preview#v0.1.3
 ```
 
 CLI 的 `web` profile 与桌面应用管理的 profile 分开，桌面用户应使用当前应用内的插件安装入口。
